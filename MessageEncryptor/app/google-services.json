@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "287018062955",
+    "project_id": "codex-95617",
+    "storage_bucket": "codex-95617.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:287018062955:android:bd7d71b5ee172cee5f4d2e",
+        "android_client_info": {
+          "package_name": "com.onyenze.messageencryptor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBnb33eXz0l1BFZ5ym1NYNzI1At6_gax38"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
