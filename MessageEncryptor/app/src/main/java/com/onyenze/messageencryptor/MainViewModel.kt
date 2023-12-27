@@ -11,15 +11,15 @@ import com.onyenze.messageencryptor.utils.DataStoreManager
 import com.onyenze.messageencryptor.utils.Levels
 
 class MainViewModel: ViewModel() {
-    val savedKeys: MutableLiveData<List<String>> = MutableLiveData(listOf())
+    val savedKeys: MutableLiveData<MutableList<String>> = MutableLiveData(mutableListOf())
     private val key: MutableLiveData<String> = MutableLiveData("")
     private val alphabets: MutableLiveData<String> = MutableLiveData("")
     val encryptionKey: MutableLiveData<String> = MutableLiveData("")
     val output: MutableLiveData<String> = MutableLiveData("")
     val message: MutableLiveData<String> = MutableLiveData("")
 
-    fun generateKey(level: Levels) {
-        val listOfCharacters = listOf(
+    fun generateKey(level: String?) {
+        val listOfCharacters = mutableListOf(
             '!',
             '#',
             '$',
@@ -95,73 +95,33 @@ class MainViewModel: ViewModel() {
         )
         var size = 0
         size = when(level) {
-            Levels.Standard -> { 5 }
-            Levels.Ultra -> { 10 }
-            else -> { 15 }
+            Levels.Standard.toString() -> { 5 }
+            Levels.Ultra.toString() -> { 7 }
+            else -> { 9 }
         }
-        val randomChars = List(size + 10) { listOfCharacters.random() }
-        val randomKey = StringBuilder()
-        for (i in randomChars) {
-            randomKey.append(i)
-        }
-        key.value = randomKey.toString()
-        encryptionKey.value = randomKey.toString() + generateAlphabets(size)
+        val generatedAlphabets = generateAlphabets(size)
+        listOfCharacters.removeAll { it in generatedAlphabets }
+        val shuffledCharacters = listOfCharacters.shuffled()
+        val randomKey = shuffledCharacters.take(size + 10).joinToString("")
+
+        key.value = randomKey
+        encryptionKey.value = randomKey + generatedAlphabets
     }
 
     private fun generateAlphabets(size: Int): String {
-        val randomChars = mutableListOf('a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U')
-        val listOfAlphabets = listOf(
-            'B',
-            'C',
-            'D',
-            'F',
-            'G',
-            'H',
-            'J',
-            'K',
-            'L',
-            'M',
-            'N',
-            'P',
-            'Q',
-            'R',
-            'S',
-            'T',
-            'V',
-            'W',
-            'X',
-            'Y',
-            'Z',
-            'b',
-            'c',
-            'd',
-            'f',
-            'g',
-            'h',
-            'j',
-            'k',
-            'l',
-            'm',
-            'n',
-            'p',
-            'q',
-            'r',
-            's',
-            't',
-            'v',
-            'w',
-            'x',
-            'y',
-            'z'
+        val vowels = listOf('a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U')
+        val consonants = listOf(
+            'B', 'C', 'D', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T',
+            'V', 'W', 'X', 'Y', 'Z', 'b', 'c', 'd', 'f', 'g', 'h', 'j', 'k', 'l', 'm', 'n', 'p',
+            'q', 'r', 's', 't', 'v', 'w', 'x', 'y', 'z'
         )
-        randomChars.addAll(List(size) {listOfAlphabets.random()})
-        val alphabetsToReplace: StringBuilder = StringBuilder()
-        for (i in randomChars) {
-            alphabetsToReplace.append(i)
-        }
-        alphabets.value = alphabetsToReplace.toString()
-        return alphabetsToReplace.toString()
+        val shuffledConsonants = consonants.shuffled()
+        val randomChars = shuffledConsonants.take(size)
+        val alphabetsToReplace = (vowels + randomChars).joinToString("")
+        alphabets.value = alphabetsToReplace
+        return alphabetsToReplace
     }
+
 
     private fun encodeBySwap(text: String, key: String, alphabets: String) {
         val mapping = mutableMapOf<Char, Char>()
@@ -199,8 +159,9 @@ class MainViewModel: ViewModel() {
             val clipData = clipboardManager.primaryClip
             val latestItem = clipData?.getItemAt(0)?.text.toString()
             val keySize = (latestItem.length).div(2)
-            key.value = latestItem.substring(0,keySize - 1)
-            alphabets.value = latestItem.substring(keySize, latestItem.length - 1)
+            key.value = latestItem.substring(0,keySize)
+            alphabets.value = latestItem.substring(keySize, latestItem.length)
+            encryptionKey.value = key.value + alphabets.value
         }
     }
 
@@ -226,15 +187,15 @@ class MainViewModel: ViewModel() {
             val fullKey = encryptionKey.value
             val keySize = (fullKey?.length)?.div(2)
             if (keySize != null) {
-                key.value = fullKey.substring(0,keySize - 1)
+                key.value = fullKey.substring(0,keySize)
             }
-            alphabets.value = keySize?.let { encryptionKey.value?.substring(it, fullKey.length - 1) }
+            alphabets.value = keySize?.let { encryptionKey.value?.substring(it, fullKey.length) }
             encodeBySwap(text, key.value!!, alphabets.value!!)
         }
     }
 
     fun copyKey(context: Context?) {
-        val keyText = key.value + alphabets.value
+        val keyText = encryptionKey.value
         val clipboardManager = context?.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
         val clipData = ClipData.newPlainText("keys", keyText)
         clipboardManager.setPrimaryClip(clipData)
@@ -242,14 +203,34 @@ class MainViewModel: ViewModel() {
 
     suspend fun updateKeyList(dataStoreManager: DataStoreManager) {
         val newKey = key.value + alphabets.value
-        val keyList = dataStoreManager.readEncryptData()
-        keyList?.addToList(newKey)
-        if (keyList == null) {
+        if (dataStoreManager.readEncryptData() == null) {
             val newEncryptionKeys = EncryptionKeys()
             newEncryptionKeys.addToList(newKey)
             dataStoreManager.writeEncryptData(newEncryptionKeys)
+        } else {
+            val keyList = dataStoreManager.readEncryptData()
+            keyList?.addToList(newKey)
+            dataStoreManager.writeEncryptData(keyList!!)
         }
-        dataStoreManager.writeEncryptData(keyList!!)
+    }
+
+    fun clearText() {
+        message.value = ""
+    }
+
+    suspend fun deleteKey(indexOfItem: Int, dataStoreManager: DataStoreManager): Boolean {
+        val encryptionKeys = dataStoreManager.readEncryptData()
+        encryptionKeys?.removeFromList(indexOfItem)
+        if (encryptionKeys != null) {
+            dataStoreManager.writeEncryptData(encryptionKeys)
+        }
+        val updatedKeyList = dataStoreManager.readEncryptData()?.keyList
+        savedKeys.value = updatedKeyList
+        return encryptionKeys?.keyList == updatedKeyList
+    }
+
+    fun clearKey() {
+        encryptionKey.value = ""
     }
 }
 

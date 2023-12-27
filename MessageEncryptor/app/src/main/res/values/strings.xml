@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">CodeX</string>
-    <string name="input_message">Paste message here</string>
+    <string name="input_message">Write new message or Paste encrypted message here</string>
     <string name="encode">Encode</string>
     <string name="decode">Execute</string>
     <string name="copy">Copy</string>
@@ -25,4 +25,5 @@
     <string name="welcome_back">Welcome Back</string>
     <string name="forgot_password">Forgot Password?</string>
     <string name="view_keys">Go to saved keys</string>
+    <string name="level_setting">Select Enryption Level</string>
 </resources>

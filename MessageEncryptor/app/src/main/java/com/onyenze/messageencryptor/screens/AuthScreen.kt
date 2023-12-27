@@ -274,14 +274,18 @@ fun AuthInputBoxesCard(
                     contentColor = MaterialTheme.colorScheme.onSecondary
                 ),
                 onClick = {
-                    signIn(
-                        email,
-                        password,
-                        navController,
-                        authState,
-                        context,
-                        activity)
-                    showIndicator = true
+                    if (email.length > 2 && password.length > 2) {
+                        signIn(
+                            email,
+                            password,
+                            navController,
+                            authState,
+                            context,
+                            activity)
+                        showIndicator = true
+                    }else {
+                        Toast.makeText(context, "Email or password invalid or empty", Toast.LENGTH_LONG).show()
+                    }
                           },
                 shape = MaterialTheme.shapes.medium
             ) {

@@ -17,12 +17,14 @@ class DataStoreManager(private val applicationContext: Context) {
     private object PreferencesKeys {
         val authKey = stringPreferencesKey("auth")
         val encryptKey = stringPreferencesKey("encrypt")
+        val encryptionLevels = stringPreferencesKey("level")
     }
 
     // Singleton pattern for DataStoreManager
     companion object {
         private val Context.authDataStore: DataStore<Preferences> by preferencesDataStore(name = "auth_datastore")
         private val Context.encryptionDataStore: DataStore<Preferences> by preferencesDataStore(name = "encrypt_dataStore")
+        private val Context.levelDataStore: DataStore<Preferences> by preferencesDataStore(name = "level_datastore")
 
         @Volatile
         private var instance: DataStoreManager? = null
@@ -59,6 +61,16 @@ class DataStoreManager(private val applicationContext: Context) {
         val serializedKeyList = Json.encodeToString(encryptionKeys)
         applicationContext.encryptionDataStore.edit { keyList ->
             keyList[PreferencesKeys.encryptKey] = serializedKeyList
+        }
+    }
+
+    suspend fun readLevelData(): String? {
+        return applicationContext.levelDataStore.data.map { it[PreferencesKeys.encryptionLevels] }.firstOrNull()
+    }
+
+    suspend fun writeLevelData(level: Levels) {
+        applicationContext.levelDataStore.edit {levelPreference ->
+            levelPreference[PreferencesKeys.encryptionLevels] = level.name
         }
     }
 }

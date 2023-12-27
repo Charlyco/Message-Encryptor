@@ -3,6 +3,7 @@ package com.onyenze.messageencryptor.screens
 import android.content.ActivityNotFoundException
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -15,10 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.ContentPaste
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.DensityMedium
 import androidx.compose.material.icons.filled.GeneratingTokens
 import androidx.compose.material.icons.filled.NoEncryption
@@ -33,7 +34,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -56,18 +56,15 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.TextUnitType
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
 import com.onyenze.messageencryptor.MainActivity
 import com.onyenze.messageencryptor.MainViewModel
 import com.onyenze.messageencryptor.R
 import com.onyenze.messageencryptor.utils.DataStoreManager
-import com.onyenze.messageencryptor.utils.Levels
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,6 +117,9 @@ fun HomeToolBar(
                     onClick = {
                         coroutineScope.launch {
                             mainViewModel?.savedKeys?.value = dataStoreManager.readEncryptData()?.keyList
+                            Log.i("SAVEDKEYS",
+                                dataStoreManager.readEncryptData()?.keyList.toString()
+                            )
                         }
                         navController.navigate("saved_keys") {
                             launchSingleTop = true
@@ -127,7 +127,11 @@ fun HomeToolBar(
                     })
                 DropdownMenuItem(
                     text = { Text(text = stringResource(id = R.string.settings)) },
-                    onClick = { /*TODO*/ })
+                    onClick = {
+                        navController.navigate("settings") {
+                        launchSingleTop = true
+                        }
+                    })
                 DropdownMenuItem(
                     text = { Text(text = stringResource(id = R.string.sign_out)) },
                     onClick = {
@@ -173,7 +177,7 @@ fun MessageInput(screenWidth: Int, coroutineScope: CoroutineScope, mainViewModel
     ConstraintLayout(
         modifier = modifier.fillMaxWidth()
     ) {
-        val (inputBox, decode, paste) = createRefs()
+        val (inputBox, decode, paste, clear) = createRefs()
 
         Surface(modifier
             .constrainAs(inputBox) {
@@ -228,26 +232,53 @@ fun MessageInput(screenWidth: Int, coroutineScope: CoroutineScope, mainViewModel
         Surface(
             modifier
                 .clickable {
-                    coroutineScope.launch {
-                        mainViewModel.pasteText(context)
-                        input = inputLivedata
-                    }
+                    mainViewModel.pasteText(context)
+                    input = inputLivedata
                 }
                 .constrainAs(paste) {
-                    end.linkTo(decode.start, margin = 16.dp)
+                    start.linkTo(inputBox.start, margin = 0.dp)
                     top.linkTo(inputBox.bottom, margin = 8.dp)
                 },
             shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
             color = MaterialTheme.colorScheme.background
         ) {
             IconButton(
-                onClick = {coroutineScope.launch {
+                onClick = {
                     mainViewModel.pasteText(context)
                     input = inputLivedata
-                }},
+                },
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.secondary
+                )
             ) {
                 Icon(imageVector = Icons.Filled.ContentPaste, contentDescription = "share output")
+            }
+        }
+        Surface(
+            modifier
+                .clickable {
+                    mainViewModel.clearText()
+                    input = inputLivedata
+                }
+                .constrainAs(clear) {
+                    start.linkTo(paste.end, margin = 8.dp)
+                    top.linkTo(inputBox.bottom, margin = 8.dp)
+                },
+            shape = MaterialTheme.shapes.small,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            IconButton(
+                onClick = {
+                    mainViewModel.clearText()
+                    input = inputLivedata
+                },
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(imageVector = Icons.Filled.Delete, contentDescription = "share output")
             }
         }
     }
@@ -267,23 +298,16 @@ fun SecretKeys(
             .padding(top = 64.dp)
             .fillMaxWidth()
     ) {
-        val (key, copyKey, pasteKey, generateKey, save, level) = createRefs()
+        val (header, key, copyKey, pasteKey, generateKey, save, clear) = createRefs()
         val keyLiveData = mainViewModel?.encryptionKey?.observeAsState()?.value
         val context = LocalContext.current.applicationContext
-
-        Surface(
-            modifier = modifier
-                .fillMaxWidth()
-                .constrainAs(level) {
-                    top.linkTo(parent.top, margin = 4.dp)
-                    start.linkTo(parent.start)
-                    end.linkTo(parent.end)
-                },
-            color = MaterialTheme.colorScheme.background,
-            contentColor = MaterialTheme.colorScheme.onBackground
-        ) {
-            LevelCheckBox()
-        }
+        Text(
+            text = stringResource(id = R.string.secret_key),
+            modifier.constrainAs(header) {
+                top.linkTo(parent.top, margin = 2.dp)
+                start.linkTo(parent.start, margin = 8.dp)
+            }
+            )
         Surface(
             modifier
                 .width(screenWidth.dp)
@@ -291,7 +315,7 @@ fun SecretKeys(
                 .constrainAs(key) {
                     start.linkTo(parent.start)
                     end.linkTo(parent.end)
-                    top.linkTo(level.bottom, margin = 8.dp)
+                    top.linkTo(header.bottom, margin = 4.dp)
                 },
             shape = MaterialTheme.shapes.medium,
             border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
@@ -307,46 +331,44 @@ fun SecretKeys(
         Surface(
             modifier
                 .size(48.dp)
-                .clickable { coroutineScope.launch { mainViewModel?.copyKey(context) } }
+                .clickable { mainViewModel?.copyKey(context) }
                 .constrainAs(copyKey) {
                     start.linkTo(key.start, margin = 0.dp)
                     top.linkTo(key.bottom, margin = 8.dp)
                 },
             shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
             color = MaterialTheme.colorScheme.background
         ) {
             IconButton(
-                onClick = { coroutineScope.launch { mainViewModel?.copyKey(context) } },
+                onClick = { mainViewModel?.copyKey(context) },
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onBackground)
+                    contentColor = MaterialTheme.colorScheme.secondary)
             ) {
-                Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = "copy contents")
+                Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = "copy key")
             }
         }
         Surface(
             modifier
                 .size(48.dp)
                 .clickable {
-                    coroutineScope.launch {
-                        mainViewModel?.pasteKey(context)
-                    }
+                    mainViewModel?.pasteKey(context)
                 }
                 .constrainAs(pasteKey) {
                     start.linkTo(copyKey.end, margin = 8.dp)
                     top.linkTo(key.bottom, margin = 8.dp)
                 },
             shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.tertiary),
             color = MaterialTheme.colorScheme.background
         ) {
             IconButton(
-                onClick = {coroutineScope.launch {
+                onClick = {
                     mainViewModel?.pasteKey(context)
-                }},
+                },
 
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onBackground
+                    contentColor = MaterialTheme.colorScheme.tertiary
                 )
             ) {
                 Icon(imageVector = Icons.Filled.ContentPaste, contentDescription = "paste key")
@@ -365,7 +387,7 @@ fun SecretKeys(
                     start.linkTo(pasteKey.end, margin = 8.dp)
                 },
             shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.secondary),
             color = MaterialTheme.colorScheme.background
         ) {
             IconButton(
@@ -373,17 +395,49 @@ fun SecretKeys(
                     mainViewModel?.updateKeyList(dataStoreManager)
                 }},
                 colors = IconButtonDefaults.iconButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onBackground
+                    contentColor = MaterialTheme.colorScheme.secondary
                 )
             ) {
-                Icon(imageVector = Icons.Filled.Save, contentDescription = "generate key")
+                Icon(imageVector = Icons.Filled.Save, contentDescription = "save key")
+            }
+        }
+        Surface(
+            modifier
+                .size(48.dp)
+                .clickable {
+                    coroutineScope.launch {
+                        mainViewModel?.clearKey()
+                    }
+                }
+                .constrainAs(clear) {
+                    top.linkTo(key.bottom, margin = 8.dp)
+                    start.linkTo(save.end, margin = 8.dp)
+                },
+            shape = MaterialTheme.shapes.small,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            IconButton(
+                onClick = { coroutineScope.launch {
+                    mainViewModel?.clearKey()
+                }},
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.primary
+                )
+            ) {
+                Icon(imageVector = Icons.Filled.Delete, contentDescription = "clear key")
             }
         }
 
         Button(
             onClick = {
                 coroutineScope.launch {
-                    mainViewModel?.generateKey(selectedLevel)
+                    if (dataStoreManager.readLevelData()?.isEmpty() == true) {
+                        Toast.makeText(context,
+                            "Please go to settings and set encryption leve",
+                            Toast.LENGTH_LONG).show()
+                    }
+                    mainViewModel?.generateKey(dataStoreManager.readLevelData())
                 }
             },
             modifier
@@ -398,20 +452,7 @@ fun SecretKeys(
                 contentColor = MaterialTheme.colorScheme.background
             ),
             ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
                 Text(text = stringResource(id = R.string.generate))
-                IconButton(
-                    onClick = {
-                        coroutineScope.launch {
-                            mainViewModel?.generateKey(selectedLevel)
-                        }
-                    },
-                ) {
-                    Icon(imageVector = Icons.Filled.GeneratingTokens, contentDescription = "generate key")
-                }
-            }
         }
     }
 }
@@ -473,16 +514,15 @@ fun OutPut(
                     top.linkTo(outputBox.bottom, margin = 8.dp)
                 },
             shape = MaterialTheme.shapes.small,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             color = MaterialTheme.colorScheme.background
         ) {
             IconButton(
                 onClick = {coroutineScope.launch {
                     mainViewModel.copyOutput(context, outputLiveData)
                 }},
-
                 colors = IconButtonDefaults.iconButtonColors(
-                    containerColor = MaterialTheme.colorScheme.background,
+                    contentColor = MaterialTheme.colorScheme.primary,
                 )
             ) {
                 Icon(imageVector = Icons.Filled.ContentCopy, contentDescription = "copy output")
@@ -498,10 +538,9 @@ fun OutPut(
                     top.linkTo(outputBox.bottom, margin = 8.dp)
                 },
             shape = MaterialTheme.shapes.medium,
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
             colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground
+                containerColor = MaterialTheme.colorScheme.tertiary,
+                contentColor = MaterialTheme.colorScheme.background
             )
             ) {
             Row(modifier = modifier.padding(start = 4.dp),
@@ -531,35 +570,5 @@ fun openSendingApp(outputLiveData: String, activity: MainActivity) {
         activity.startActivity(chooser)
     } catch (e: ActivityNotFoundException) {
         Log.i("SHARE", e.message.toString())
-    }
-}
-
-var selectedLevel by mutableStateOf(Levels.Standard)
-@Composable
-fun LevelCheckBox(
-) {
-    var selectedOption by remember { mutableStateOf(Levels.Standard.name) }
-    Row(
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Levels.entries.forEach { level ->
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .padding(horizontal = 4.dp)
-                    .selectable(
-                        selected = level.name == selectedOption,
-                        onClick = { selectedOption = level.name }
-                    )
-            ) {
-                RadioButton(
-                    selected = level.name == selectedOption,
-                    onClick  = {
-                        selectedOption = level.name
-                    })
-                Text(text = level.name)
-                selectedLevel = level
-            }
-        }
     }
 }

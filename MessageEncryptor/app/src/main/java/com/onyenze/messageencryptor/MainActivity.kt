@@ -17,6 +17,7 @@ import com.onyenze.messageencryptor.screens.AuthScreen
 import com.onyenze.messageencryptor.screens.Home
 import com.onyenze.messageencryptor.screens.PasswordReset
 import com.onyenze.messageencryptor.screens.SavedKeys
+import com.onyenze.messageencryptor.screens.Settings
 import com.onyenze.messageencryptor.screens.SignUpScreen
 import com.onyenze.messageencryptor.screens.WelcomeScreen
 import com.onyenze.messageencryptor.ui.theme.MessageEncryptorTheme
@@ -72,6 +73,13 @@ fun CodexApp(dataStoreManager: DataStoreManager, authState: FirebaseAuth, activi
         }
         composable("saved_keys") {
             SavedKeys(navController = navController, dataStoreManager = dataStoreManager, mainViewModel)
+        }
+        composable("settings") {
+            Settings(
+                dataStoreManager = dataStoreManager,
+                navController = navController,
+                mainViewModel = mainViewModel
+            )
         }
     }
 }
